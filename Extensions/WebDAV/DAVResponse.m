@@ -24,6 +24,13 @@ static void _AddPropertyResponse(NSString* itemPath, NSString* resourcePath, DAV
                                                                     CFSTR("<&>?+"), kCFStringEncodingUTF8);
   if (escapedPath) {
     NSDictionary* attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:itemPath error:NULL];
+
+    BOOL followSymbolicLinks = YES;
+    if (followSymbolicLinks && [[attributes fileType] isEqualToString:NSFileTypeSymbolicLink]) {
+      itemPath = [[NSFileManager defaultManager] destinationOfSymbolicLinkAtPath:itemPath error:NULL];
+      attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:itemPath error:NULL];
+    }
+
     BOOL isDirectory = [[attributes fileType] isEqualToString:NSFileTypeDirectory];
     [xmlString appendString:@"<D:response>"];
       [xmlString appendFormat:@"<D:href>%@</D:href>", escapedPath];
@@ -80,7 +87,7 @@ static xmlNodePtr _XMLChildWithName(xmlNodePtr child, const xmlChar* name) {
   if ((self = [super init])) {
     _status = 200;
     _headers = [[NSMutableDictionary alloc] init];
-    
+
     // 10.1 DAV Header
     if ([method isEqualToString:@"OPTIONS"]) {
       if ([[headers objectForKey:@"User-Agent"] hasPrefix:@"WebDAVFS/"]) {  // Mac OS X WebDAV support
